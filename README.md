@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Solstice Bingo ☀️
 
-## Getting Started
+A browser-based bingo game built around small June rituals from around the world. Complete activities, mark them done, and watch the sky shift from deep night to solstice noon.
 
-First, run the development server:
+**[Play it here →](https://solstice-bingo.netlify.app/)**
+
+![Solstice Bingo banner](solstice-bingo.png)
+
+## What it is
+
+Each card draws 24 rituals at random from a pool of 33 June celebrations — Midsommar, Juneteenth, Bloomsday, Dragon Boat Festival, World Oceans Day, and many more. Tap any square to read about the celebration and what to do. Mark it done when you've done it in real life.
+
+As you complete rituals, the sky gradually brightens from midnight to solstice noon. Finish a row, column, or diagonal for a Bingo. Light the whole card to bring the sun to its zenith.
+
+## Features
+
+- 33 rituals drawn from June celebrations around the world
+- Each ritual has a short description, a suggested activity, and often a link to learn more
+- Sky animation that rises with your progress (night → dawn → noon)
+- Progress saved automatically in the browser — close the tab and come back later
+- Shuffle for a fresh card at any time
+
+## How to run locally
+
+No build step needed. Just open `index.html` in a browser.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repo-url>
+open index.html
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## How it's built
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Everything lives in a single `index.html` file — no frameworks, no bundlers, no dependencies. Plain HTML, CSS, and vanilla JavaScript.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+A few things worth noting:
 
-## Learn More
+- **Sky animation** — CSS custom properties updated via a colour-interpolation function in JS. The sun literally rises as you play.
+- **Progress** — saved in `localStorage` so it survives page reloads.
+- **Card generation** — 24 rituals drawn at random from the pool on each new game, with one card (Alan Turing's birthday) always guaranteed to appear.
 
-To learn more about Next.js, take a look at the following resources:
+Built in collaboration with AI (Gemini + Claude) as a learning project — I'm still finding my way around CSS and JavaScript. It felt a lot like pair programming!
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Made for the [June Solstice Game Jam](https://dev.to/challenges/june-game-jam-2026-06-03). Share your progress with **#solsticebingo** ☀️

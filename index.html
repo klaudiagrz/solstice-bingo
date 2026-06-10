@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solstice Bingo</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     SOLSTICE BINGO
+     Begin in the dark. Do small June rituals, mark them done,
+     and raise the sun from night to its solstice noon.
+     Progress is saved in the browser. One self-contained file.
+     ============================================================ */
+  :root{
+    --sky-top:#0e1140; --sky-bottom:#241a4a;   /* night defaults */
+    --sun:#6b5a8a; --sun-glow:#4a3a6a;
+    --ink:#2a1a3e; --card:#fffaf2; --card-edge:#e8d4b8;
+    --gold:#ffb627; --gold-deep:#e8890c;
+    --claimed:#ffd86b; --free:#ff7a45; --good:#3fae6b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:"DM Sans",sans-serif;color:var(--ink);
+    background:linear-gradient(180deg,var(--sky-top),var(--sky-bottom));
+    transition:background 1.1s ease;overflow:hidden;-webkit-tap-highlight-color:transparent}
+
+  #sky{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+  #stars{position:absolute;inset:0;transition:opacity 1.1s ease}
+  .star{position:absolute;background:#fff;border-radius:50%;animation:tw 4s infinite ease-in-out}
+  @keyframes tw{0%,100%{opacity:.35}50%{opacity:1}}
+  #sun{position:absolute;width:130px;height:130px;border-radius:50%;left:50%;
+    background:radial-gradient(circle at 50% 45%,#fff,var(--sun) 45%,var(--sun-glow) 100%);
+    box-shadow:0 0 60px 30px var(--sun-glow),0 0 170px 90px rgba(255,200,80,.35);
+    transform:translate(-50%,-50%);
+    transition:top 1.1s cubic-bezier(.4,0,.2,1),background 1.1s,box-shadow 1.1s}
+  #horizon{position:absolute;left:0;right:0;bottom:0;height:32%;
+    background:linear-gradient(180deg,transparent,rgba(10,6,30,.35))}
+
+  #app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;
+    align-items:center;padding:14px;gap:10px;max-width:560px;margin:0 auto}
+  header{text-align:center}
+  h1{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(26px,6.5vw,40px);
+    line-height:.95;letter-spacing:-.5px;
+    background:linear-gradient(180deg,var(--gold),var(--gold-deep));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 1px 8px rgba(0,0,0,.35))}
+  .tag{font-style:italic;font-family:"Fraunces",serif;font-weight:500;font-size:13px;margin-top:10px;
+    color:#fff7e8;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+
+  #hud{display:flex;gap:8px;width:100%;justify-content:center;align-items:center}
+  .stat{background:var(--card);border:2px solid var(--card-edge);border-radius:14px;
+    padding:6px 12px;text-align:center;min-width:74px;box-shadow:0 4px 0 rgba(20,10,40,.25)}
+  .stat b{display:block;font-family:"Fraunces",serif;font-weight:900;font-size:20px;line-height:1}
+  .stat span{font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:.6;font-weight:700}
+  #shuffle{margin-left:auto;background:var(--card);border:2px solid var(--card-edge);border-radius:14px;
+    padding:8px 12px;cursor:pointer;font-weight:700;font-size:12px;box-shadow:0 4px 0 rgba(20,10,40,.25)}
+  #shuffle:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(20,10,40,.25)}
+
+  #sunline{display:none}
+
+  #grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:100%;height:min(55vh,420px)}
+  .cell{position:relative;background:var(--card);border:2px solid var(--card-edge);border-radius:12px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4px;
+    cursor:pointer;font-weight:700;font-size:clamp(8px,1.9vw,11px);line-height:1.1;
+    transition:transform .12s,background .3s,border-color .3s;user-select:none;overflow:hidden;
+    box-shadow:0 2px 0 rgba(20,10,40,.18)}
+  .cell .e{font-size:clamp(16px,4.5vw,24px);margin-bottom:2px;line-height:1}
+  .cell:active{transform:scale(.94)}
+  .cell.done{background:linear-gradient(160deg,var(--claimed),var(--gold));border-color:var(--gold-deep);color:#5a3a00}
+  .cell.done::after{content:"✓";position:absolute;top:3px;right:5px;font-size:11px;color:var(--gold-deep)}
+  .cell.free{background:linear-gradient(160deg,#ffb27a,var(--free));border-color:#c4471f;color:#fff;cursor:default}
+  .cell.free .e{font-size:clamp(20px,6vw,30px)}
+  .cell.flash{animation:flash .6s}
+  @keyframes flash{0%{box-shadow:0 0 0 0 var(--gold)}50%{box-shadow:0 0 0 8px rgba(255,182,39,.55)}100%{box-shadow:0 0 0 0 transparent}}
+
+  #toast{position:fixed;top:36%;left:50%;transform:translateX(-50%);z-index:6;font-family:"Fraunces",serif;
+    font-weight:900;font-size:46px;color:var(--gold);text-shadow:0 4px 0 var(--gold-deep),0 0 30px rgba(255,180,40,.9);
+    opacity:0;pointer-events:none}
+  #toast.pop{animation:pop 1.1s ease-out}
+  @keyframes pop{0%{opacity:0;transform:translateX(-50%) scale(.4)}25%{opacity:1;transform:translateX(-50%) scale(1.1)}
+    70%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-40px)}}
+
+  .overlay{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:18px;
+    background:rgba(14,9,40,.6);backdrop-filter:blur(6px)}
+  .overlay.hidden{display:none}
+  .panel{background:var(--card);border-radius:22px;border:3px solid var(--gold);max-width:440px;width:100%;
+    max-height:88vh;overflow:auto;padding:24px;box-shadow:0 12px 0 rgba(232,137,12,.4);text-align:center}
+  .panel h2{font-family:"Fraunces",serif;font-weight:900;font-size:28px;line-height:1.05;margin-bottom:8px}
+  .panel p{font-size:14px;opacity:.82;margin-bottom:14px;line-height:1.55}
+  .btn{font-family:"Fraunces",serif;font-weight:900;font-size:18px;color:#fff;
+    background:linear-gradient(180deg,var(--gold),var(--gold-deep));border:none;border-radius:14px;padding:14px 28px;
+    cursor:pointer;box-shadow:0 5px 0 #b56a00;transition:transform .1s;width:100%}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #b56a00}
+  .btn.ghost{background:none;color:var(--ink);box-shadow:none;border:2px solid var(--card-edge);margin-top:8px}
+  .how{text-align:left;font-size:13px;line-height:1.6;margin:14px 0;opacity:.85}
+  .how li{margin:5px 0;list-style:none;padding-left:24px;position:relative}
+  .how li::before{content:"☀";position:absolute;left:0;color:var(--gold-deep)}
+
+  #ritual .occasion{font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--gold-deep)}
+  #ritual .big-e{font-size:54px;line-height:1;margin:6px 0}
+  #ritual .ritual-text{font-family:"Fraunces",serif;font-weight:900;font-size:22px;line-height:1.15;margin-bottom:10px}
+  #ritual .why{font-size:14px;opacity:.82;line-height:1.55;margin-bottom:18px;text-align:left;
+    border-left:3px solid var(--gold);padding-left:12px}
+  #ritual .done-badge{font-family:"Fraunces",serif;font-weight:900;color:var(--good);font-size:16px;margin-bottom:10px}
+  #ritual .learn-more{display:inline-block;font-weight:700;font-size:13px;color:var(--gold-deep);
+    text-decoration:none;border:2px solid var(--card-edge);border-radius:12px;padding:8px 14px;margin-bottom:16px}
+  #ritual .learn-more:hover{border-color:var(--gold);text-decoration:underline}
+  #ritual .learn-more.hidden{display:none}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+  <div id="sky"><div id="stars"></div><div id="sun"></div><div id="horizon"></div></div>
+
+  <div id="app">
+    <header>
+      <h1>Solstice Bingo</h1>
+      <div class="tag">Small June rituals to raise the sun from night to noon</div>
+    </header>
+    <div id="hud">
+      <div class="stat"><b id="done-count">0/24</b><span>Rituals</span></div>
+      <div class="stat"><b id="bingos">0</b><span>Bingos</span></div>
+      <button id="shuffle">↻ New set</button>
+    </div>
+    <div id="sunline">Deep night. Complete a ritual to begin raising the sun.</div>
+    <div id="grid"></div>
+  </div>
+
+  <div id="toast">BINGO!</div>
+
+  <div class="overlay" id="start-overlay">
+    <div class="panel">
+      <h2>🌙 Solstice Bingo</h2>
+      <p>It's the dark before the longest day. Complete small rituals drawn from June celebrations around the world — and raise the sun, hour by hour, to its solstice noon.</p>
+      <ul class="how">
+        <li>Tap any square to see its ritual and why it matters.</li>
+        <li>Do it in real life, then mark it <b>done</b>.</li>
+        <li>Every ritual lifts the sun and brightens the sky.</li>
+        <li>Finish a row, column, or diagonal for a <b>Bingo!</b></li>
+        <li>Light the whole card to bring the sun to its zenith.</li>
+      </ul>
+      <button class="btn" id="start-btn">Begin in the Dark</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="ritual-overlay">
+    <div class="panel" id="ritual">
+      <div class="occasion"></div>
+      <div class="big-e"></div>
+      <div class="ritual-text"></div>
+      <div class="why"></div>
+      <a class="learn-more hidden" id="learn-more" target="_blank" rel="noopener noreferrer"></a>
+      <div class="done-badge hidden">✓ Done — the sun rose a little.</div>
+      <button class="btn" id="mark-btn">I did this ☀</button>
+      <button class="btn ghost" id="close-btn">Close</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="win-overlay">
+    <div class="panel">
+      <h2>☀️ The Sun is at its zenith</h2>
+      <p id="win-msg"></p>
+      <button class="btn" id="again-btn">Start a New Day</button>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   1. CONTENT — small June rituals + why they matter.
+   Edit freely: label (short, for the square), e (emoji),
+   occasion, ritual (the act to do), why (the explanation).
+   Optional: add link (a URL) + linkLabel to show a "learn more" button in
+   the ritual's pop-up. Only add one when you've found genuinely good content,
+   and check the link still works before you ship it.
+   The card draws 24 at random, so a longer list = more variety.
+   ============================================================ */
+const RITUALS = [
+  {label:"Be kind to your dad", e:"👔", occasion:"Father’s Day", ritual:"Say something kind to your father or a father figure in your life", why:"Father’s Day falls on the third Sunday of June in many countries. Sometimes a single nice word is all it takes to make someone’s whole day."},
+  {label:"Greet the sun", e:"🌅", occasion:"Summer Solstice", ritual:"Step outside and watch the sunrise or sunset. Take one deep breath.", why:"The June solstice is the longest day of the year — more daylight than any other! People have been marking this moment at places like Stonehenge for thousands of years. There’s something about it that never gets old.", link:"https://www.youtube.com/watch?v=eygsVj9vlS0", linkLabel:"Summer solstice: Spectacular sunrise at Stonehenge"},
+  {label:"Play your favourite song", e:"🎶", occasion:"Fête de la Musique", ritual:"Play your favourite song out loud. Feel free to sing along!", why:"Every June 21, streets in over 120 countries fill with free, spontaneous music — anyone can perform, anywhere. It started in France and now it’s a whole world thing. Pretty wonderful, right?"},
+  {label:"Care for the Earth", e:"🌍", occasion:"World Environment Day", ritual:"Pick up one piece of litter, or water a plant", why:"June 5 is the UN’s biggest global day for the planet. Small actions really do add up — and even watering one plant counts.", link:"https://www.youtube.com/watch?v=u-j1YiJAS2E", linkLabel:"World Environment Day 2026 Theme Explained"},
+  {label:"Watch LGBTQ+ cinema", e:"🏳️‍🌈", occasion:"Pride Month", ritual:"Watch a film or series with an LGBTQIA+ story — Heartstopper, Pose, It’s a Sin, Moonlight, Brokeback Mountain, and Pride (2014) are all wonderful starting points", why:"Pride Month celebrates LGBTQIA+ lives and honours the 1969 Stonewall uprising — a brave moment that sparked the modern rights movement. June is a great time to learn, celebrate, and show up for the people you love.", link:"https://www.youtube.com/watch?v=RcJcM4zTBP8", linkLabel:"What is Pride Month?"},
+  {label:"Read a Black poet", e:"✊🏾", occasion:"Juneteenth", ritual:"Read a poem by a Black poet — Langston Hughes, Maya Angelou, Amanda Gorman, or Nikki Giovanni are great starting points", why:"On June 19, 1865, the last enslaved people in Texas finally heard the news: they were free. Juneteenth celebrates that moment — and Black joy, resilience, and culture.", link:"https://www.youtube.com/watch?v=lq8TNKZVEWs", linkLabel:"What is Juneteenth, and why is it important?"},
+  {label:"Wear a flower", e:"💐", occasion:"Midsommar", ritual:"Tuck a flower behind your ear or in your hair", why:"Sweden goes all out for midsummer — flower crowns, maypoles, singing, and dancing outside near the solstice. It’s one of the most joyful celebrations around. Any excuse to wear flowers is a good one.", link:"https://www.youtube.com/watch?v=6SC8ccxX-44", linkLabel:"Midsummer in Sweden"},
+  {label:"Write & burn a wish", e:"🔥", occasion:"Noche de San Juan", ritual:"Write a small wish on paper, then burn it to send it into the night", why:"On St John’s Eve, bonfires light up beaches and squares across Spain and Latin America. It’s a night for wishes, letting go of the old, and welcoming something new.", link:"https://www.youtube.com/watch?v=iHWPKY2Z43I", linkLabel:"See how people celebrate La Noche de San Juan"},
+  {label:"Eat some sushi", e:"🍣", occasion:"Sushi Day", ritual:"Treat yourself to some sushi today or watch a documentary about it", why:"June 18 is International Sushi Day! Sushi has a long history going back to 8th century Japan, where it started as a way of preserving fish. Now it’s loved all over the world. A delicious excuse to celebrate."},
+  {label:"Do it together", e:"🐉", occasion:"Dragon Boat Festival", ritual:"Do one small task with someone else, in sync", why:"China’s Duanwu festival is famous for dragon-boat races where crews must paddle in perfect sync to win. A beautiful reminder that some things are just better when you do them together.", link:"https://www.youtube.com/watch?v=YlPExNPyPwQ", linkLabel:"Dragon Boat Festival"},
+  {label:"Do some yoga", e:"🧘", occasion:"Day of Yoga", ritual:"Do 10 minutes of yoga", why:"The International Day of Yoga lands every June 21 — right on the solstice! It’s a worldwide invitation to slow down, breathe, and move your body, even just a little.", link:"https://www.youtube.com/@yogawithadriene", linkLabel:"Yoga with Adriene is a great free resource"},
+  {label:"Read some Joyce", e:"📖", occasion:"Bloomsday", ritual:"Read one page of Ulysses or try his poems for something shorter", why:"Every June 16, Dublin celebrates Bloomsday by retracing James Joyce’s Ulysses — a whole novel set in a single day in 1904. Fair warning: Ulysses is famously tricky. Dubliners is a much gentler entry point, and just as beautiful.", link:"https://www.gutenberg.org/ebooks/4300", linkLabel:"Read Ulysses free on Project Gutenberg"},
+  {label:"Find the moon", e:"🌕", occasion:"Strawberry Moon", ritual:"Look up at the moon tonight", why:"June’s full moon is called the Strawberry Moon — named by Indigenous peoples for the berries that ripen right around now. Such a lovely name for such a lovely thing.", link:"https://www.youtube.com/watch?v=X29nbZMDwf4", linkLabel:"Strawberry Moon: What is it and how can you see it?"},
+  {label:"Eat outside", e:"🧺", occasion:"Picnic Day", ritual:"Eat one meal or snack outdoors", why:"June 18 is International Picnic Day and honestly, it’s one of the best excuses in the calendar. Long summer evenings were made for eating outside."},
+  {label:"Dance once", e:"🎉", occasion:"Festa Junina", ritual:"Dance to one whole song", why:"Brazil’s Festa Junina brings the whole of June to life — bonfires, forró dancing, colourful decorations, and corn-based sweets everywhere. One of the most vibrant celebrations around!", link:"https://www.youtube.com/watch?v=nXYgi2vW5ko", linkLabel:"Festa Junina in Brazil"},
+  {label:"Find your light", e:"🌞", occasion:"Inti Raymi", ritual:"Name one thing that gave you energy today", why:"Inti Raymi is the Inca Festival of the Sun, re-enacted every June 24 in Cusco, Peru. Thousands gather to honour the sun god Inti and give thanks for light and warmth. What a beautiful tradition.", link:"https://www.youtube.com/watch?v=4OShU3lQaGs", linkLabel:"Inti Raymi: Festival of the Sun"},
+  {label:"Float a leaf", e:"🌿", occasion:"Kupala Night", ritual:"Float a flower or leaf on water and watch it drift", why:"Slavic midsummer is full of magic — on Kupala Night, people light bonfires, dance, and float flower wreaths on rivers to read the future. Old, mysterious, and kind of wonderful.", link:"https://www.youtube.com/watch?v=zqqIBOi_5HY", linkLabel:"Inside Kupala Night: Slavic Midsummer’s Wildest Rituals"},
+  {label:"Hear a refugee’s story", e:"🕊️", occasion:"World Refugee Day", ritual:"Read one refugee’s personal story — UNHCR’s website is a good place to start", why:"June 20 is World Refugee Day, honouring people forced to flee their homes. A single story builds the empathy that statistics can’t.", link:"https://www.unhcr.org/events/world-refugee-day-2026", linkLabel:"Find stories on UNHCR"},
+  {label:"Look at the stars", e:"✨", occasion:"Matariki", ritual:"Admire the stars on the night sky", why:"Matariki marks the Māori New Year in Aotearoa New Zealand. It begins when the Matariki star cluster rises in the dawn sky — a time for remembering, celebrating, and making wishes for the year ahead.", link:"https://www.youtube.com/watch?v=kHlAXE_kh80", linkLabel:"Matariki: Māori New Year"},
+  {label:"Solve a riddle", e:"💻", pinned:true, occasion:"Turing’s Birthday", ritual:"Solve a small puzzle or riddle", why:"Alan Turing was born on June 23, 1912. He invented the foundations of modern computing and the famous Turing Test. Without him, no internet, no smartphones — basically none of this. Feels worth celebrating!", link:"https://www.youtube.com/watch?v=MidJR581irA", linkLabel:"Alan Turing’s Short Bio"},
+  {label:"Thank a helper", e:"🩸", occasion:"Blood Donor Day", ritual:"Thank someone who quietly helps others", why:"World Blood Donor Day on June 14 honours the volunteers who give blood and save lives — often for strangers they’ll never meet. A quiet, extraordinary act of kindness.", link:"https://www.youtube.com/watch?v=kOISEM6L4xk", linkLabel:"Blood donation: an act of solidarity"},
+  {label:"Spot summer", e:"🌻", occasion:"Summer Begins", ritual:"Notice one sign that summer has arrived", why:"For meteorologists, northern-hemisphere summer officially kicks off on June 1. Step outside — can you spot the signs? Longer evenings, warmer air, that unmistakable summer smell..."},
+  {label:"Light a candle", e:"🕯️", occasion:"Winter Solstice (South)", ritual:"Light a candle for someone far away", why:"While the north celebrates its longest day, the southern hemisphere marks its longest night — the same moment, from the other side of the planet. Lighting a candle feels like a small bridge across the world."},
+  {label:"Go for a run", e:"🏃", occasion:"Global Running Day", ritual:"Go for a run - any distance counts, even a short one around the block", why:"Global Running Day falls on the first Wednesday of June. It’s a worldwide celebration of the simplest sport there is: just put on your shoes and go. No finish line required."},
+  {label:"Stay hydrated", e:"🌊", occasion:"World Oceans Day", ritual:"Drink a glass of water slowly and mindfully", why:"June 8 is World Oceans Day! The ocean covers over 70% of our planet and produces more than half the oxygen we breathe. Drinking a glass of water slowly is a tiny way to say thank you.", link:"https://www.youtube.com/watch?v=DJrokFdhZrY", linkLabel:"World Oceans Day | BBC Teach"},
+  {label:"Plant a seed", e:"🌱", occasion:"World Rainforest Day", ritual:"Plant a seed, pot a cutting, adopt a houseplant, or just go touch some grass", why:"World Rainforest Day is on June 22 — a day to celebrate and protect the lungs of our planet. You don’t need a rainforest nearby to take part. Any small act of growing something counts.", link:"https://www.youtube.com/watch?v=3vijLre760w", linkLabel:"Rainforests 101 | National Geographic"},
+  {label:"Go for a bike ride", e:"🚲", occasion:"World Bicycle Day", ritual:"Hop on a bike and go somewhere — even just around the block counts", why:"World Bicycle Day is on June 3! The UN created it in 2018 to celebrate the bicycle as one of the simplest, most sustainable ways to get around. Two wheels, no fuel, all joy."},
+  {label:"Feel the wind", e:"🪁", occasion:"World Wind Day", ritual:"Go outside and stand in the wind for a minute. Or fly a kite if you have one!", why:"June 15 is World Wind Day, celebrating wind energy and the sheer pleasure of a good breeze. One of life’s best free things — and somehow always underrated."},
+  {label:"Spot an animal", e:"🦒", occasion:"World Giraffe Day", ritual:"Go for a walk and spot animals on your way, or watch the documentary about giraffes", why:"World Giraffe Day is on June 21 — the longest day for the world’s tallest animal! Giraffes are actually listed as vulnerable to extinction. They deserve more attention than they get.", link:"https://www.youtube.com/watch?v=P_ckAbOr0r4", linkLabel:"Giraffes 101 | Nat Geo Wild"},
+  {label:"Cook from scratch", e:"🍳", occasion:"World Sustainable Gastronomy Day", ritual:"Cook something simple from scratch using fresh ingredients. Even toast with a good topping counts.", why:"June 18 is World Sustainable Gastronomy Day — a reminder that what we eat and how it’s grown really matters. Nothing beats something made with real ingredients and a little bit of care."},
+  {label:"Try to juggle", e:"🤹", occasion:"World Juggling Day", ritual:"Try to juggle with anything — oranges, socks, a scarf. Dropping is completely fine", why:"World Juggling Day falls on the third Saturday of June and it’s exactly as fun and ridiculous as it sounds. The point isn’t to succeed — it’s to laugh at yourself trying."},
+  {label:"Be a kid again", e:"🫧", occasion:"International Children’s Day", ritual:"Do one thing you loved as a child — draw, skip, blow bubbles, build something, play a game", why:"International Children’s Day is celebrated on June 1 in many countries around the world. A lovely reminder that joy doesn’t have an age limit, and that some things are worth keeping forever."},
+  {label:"Post something kind", e:"💬", occasion:"World Social Media Day", ritual:"Share something genuinely positive online — a recommendation, a compliment, or something that made you smile this week", why:"World Social Media Day is on June 30. A good excuse to remember that the internet can actually be a wonderful place when we choose to make it one."},
+];
+
+/* ============================================================
+   2. STATE + SAVED PROGRESS
+   Progress is stored in the browser under this key. All storage
+   is wrapped in try/catch so the game still runs anywhere — it
+   just won't persist if storage is blocked (e.g. a preview pane).
+   ============================================================ */
+const STORAGE_KEY = "solsticeRitualBingo.v3";
+const $ = id => document.getElementById(id);
+const grid = $("grid");
+let cells=[]; let doneCount=0, bingosWon=0, activeIndex=-1;
+const completedLines=new Set();
+
+const LINES=[];
+for(let r=0;r<5;r++) LINES.push([0,1,2,3,4].map(c=>r*5+c));
+for(let c=0;c<5;c++) LINES.push([0,1,2,3,4].map(r=>r*5+c));
+LINES.push([0,6,12,18,24]); LINES.push([4,8,12,16,20]);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+
+function saveState(){
+  try{
+    const snapshot=cells.map(c=>({label:c.label,e:c.e,occasion:c.occasion,ritual:c.ritual,why:c.why,link:c.link||"",linkLabel:c.linkLabel||"",free:!!c.free,done:!!c.done}));
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot));
+  }catch(e){/* storage unavailable — play on without saving */}
+}
+function loadState(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);if(!raw) return null;
+    const data=JSON.parse(raw);
+    if(Array.isArray(data)&&data.length===25&&data.every(d=>d&&"done" in d&&"label" in d)) return data;
+  }catch(e){}
+  return null;
+}
+function clearState(){try{localStorage.removeItem(STORAGE_KEY);}catch(e){}}
+
+/* ============================================================
+   3. CARD: draw fresh or restore from saved data
+   ============================================================ */
+function freshCardData(){
+  const pinned=RITUALS.filter(r=>r.pinned);
+  const picks=shuffle([...pinned,...shuffle(RITUALS.filter(r=>!r.pinned)).slice(0,24-pinned.length)]);let p=0;const data=[];
+  for(let i=0;i<25;i++){
+    if(i===12) data.push({label:"Solstice",e:"☀️",occasion:"The Solstice",ritual:"Simply being here, on the longest day.",why:"The June solstice is your free space — the turning point of the year.",free:true,done:true});
+    else{const r=picks[p++];data.push({...r,free:false,done:false});}
+  }
+  return data;
+}
+function render(data){
+  grid.innerHTML="";cells=[];
+  data.forEach((d,i)=>{
+    const el=document.createElement("div");el.className="cell";
+    if(d.free) el.classList.add("free");
+    if(d.done) el.classList.add("done");
+    el.innerHTML=`<span class="e">${d.e}</span>${d.label}`;
+    el.addEventListener("click",()=>openRitual(i));
+    cells.push({...d,el});grid.appendChild(el);
+  });
+}
+function recompute(){
+  doneCount=cells.filter(c=>c.done&&!c.free).length;
+  completedLines.clear();
+  LINES.forEach((line,idx)=>{ if(line.every(i=>cells[i].done)) completedLines.add(idx); });
+  bingosWon=completedLines.size;
+}
+function startCard(forceNew){
+  const data=(!forceNew && loadState()) || freshCardData();
+  render(data);recompute();updateHud();raiseSun();saveState();
+}
+
+/* ============================================================
+   4. RITUAL DETAIL + MARK DONE
+   ============================================================ */
+function openRitual(i){
+  const c=cells[i];if(c.free) return;activeIndex=i;
+  const r=$("ritual");
+  r.querySelector(".occasion").textContent=c.occasion;
+  r.querySelector(".big-e").textContent=c.e;
+  r.querySelector(".ritual-text").textContent=c.ritual;
+  r.querySelector(".why").textContent=c.why;
+  const lm=$("learn-more");
+  if(c.link){ lm.href=c.link; lm.textContent=(c.linkLabel||"Learn more")+" ↗"; lm.classList.remove("hidden"); }
+  else{ lm.classList.add("hidden"); lm.removeAttribute("href"); lm.textContent=""; }
+  const badge=r.querySelector(".done-badge"),mark=$("mark-btn");
+  if(c.done){badge.classList.remove("hidden");mark.classList.add("hidden");}
+  else{badge.classList.add("hidden");mark.classList.remove("hidden");}
+  $("ritual-overlay").classList.remove("hidden");
+}
+function closeRitual(){$("ritual-overlay").classList.add("hidden");activeIndex=-1;}
+function markDone(){
+  const c=cells[activeIndex];if(!c||c.done) return;
+  c.done=true;c.el.classList.add("done","flash");
+  setTimeout(()=>c.el.classList.remove("flash"),600);
+  doneCount++;updateHud();raiseSun();checkBingos();saveState();closeRitual();
+}
+function checkBingos(){
+  LINES.forEach((line,idx)=>{
+    if(completedLines.has(idx)) return;
+    if(line.every(i=>cells[i].done)){
+      completedLines.add(idx);bingosWon++;
+      line.forEach(i=>{cells[i].el.classList.add("flash");setTimeout(()=>cells[i].el.classList.remove("flash"),600);});
+      showToast("BINGO!");updateHud();
+    }
+  });
+  if(doneCount>=24) setTimeout(winGame,700);
+}
+function showToast(t){const el=$("toast");el.textContent=t;el.classList.remove("pop");void el.offsetWidth;el.classList.add("pop");}
+function updateHud(){$("done-count").textContent=doneCount+"/24";$("bingos").textContent=bingosWon;}
+
+/* ============================================================
+   5. RAISE THE SUN (driven by progress: night -> noon)
+   ============================================================ */
+const SKY=[
+  {p:0.00,top:"#0e1140",bot:"#241a4a",sun:"#6b5a8a",glow:"#4a3a6a"}, // deep night
+  {p:0.25,top:"#3a2a66",bot:"#b5476b",sun:"#ffd9a8",glow:"#ff7a45"}, // pre-dawn
+  {p:0.50,top:"#f7c9d9",bot:"#ffb27a",sun:"#fff0c0",glow:"#ffcf6b"}, // dawn
+  {p:0.75,top:"#aee0ff",bot:"#ffe6b0",sun:"#ffffff",glow:"#ffe98a"}, // morning
+  {p:1.00,top:"#7fc6ff",bot:"#fff3cf",sun:"#ffffff",glow:"#ffd24d"}  // solstice noon
+];
+const SUNLINE=["Deep night.","First light stirs.","Dawn breaks.","The morning warms.","The sun climbs high.","The solstice sun blazes overhead!"];
+function hexLerp(a,b,t){const pa=parseInt(a.slice(1),16),pb=parseInt(b.slice(1),16);
+  const ar=pa>>16,ag=(pa>>8)&255,ab=pa&255,br=pb>>16,bg=(pb>>8)&255,bb=pb&255;
+  return `rgb(${Math.round(ar+(br-ar)*t)},${Math.round(ag+(bg-ag)*t)},${Math.round(ab+(bb-ab)*t)})`;}
+function raiseSun(){
+  const prog=Math.min(1,doneCount/24);
+  let lo=SKY[0],hi=SKY[SKY.length-1];
+  for(let i=0;i<SKY.length-1;i++){if(prog>=SKY[i].p&&prog<=SKY[i+1].p){lo=SKY[i];hi=SKY[i+1];break;}}
+  const t=(prog-lo.p)/((hi.p-lo.p)||1);
+  document.body.style.background=`linear-gradient(180deg,${hexLerp(lo.top,hi.top,t)},${hexLerp(lo.bot,hi.bot,t)})`;
+  const root=document.documentElement.style;
+  root.setProperty("--sun",hexLerp(lo.sun,hi.sun,t));
+  root.setProperty("--sun-glow",hexLerp(lo.glow,hi.glow,t));
+  $("sun").style.top=(window.innerHeight*(0.86-0.68*prog))+"px";   // low at night, high at noon
+  $("stars").style.opacity=Math.max(0,1-prog*1.5);                 // stars fade as it brightens
+  $("sunline").textContent=SUNLINE[Math.min(SUNLINE.length-1,Math.floor(prog*(SUNLINE.length-1)+1e-9))];
+}
+function makeStars(n){
+  const wrap=$("stars");let html="";
+  for(let i=0;i<n;i++){
+    const s=(Math.random()*1.6+0.6).toFixed(1);
+    html+=`<span class="star" style="left:${(Math.random()*100).toFixed(1)}%;top:${(Math.random()*65).toFixed(1)}%;width:${s}px;height:${s}px;animation-delay:${(Math.random()*4).toFixed(1)}s"></span>`;
+  }
+  wrap.innerHTML=html;
+}
+
+/* ============================================================
+   6. WIN
+   ============================================================ */
+function winGame(){
+  $("win-msg").textContent=`You completed all 24 rituals with ${bingosWon} bingo${bingosWon===1?"":"s"} and carried the sun to the top of the sky. Happy solstice! 🥳🎉`;
+  $("win-overlay").classList.remove("hidden");
+}
+
+/* ============================================================
+   7. WIRING
+   ============================================================ */
+$("start-btn").addEventListener("click",()=>$("start-overlay").classList.add("hidden"));
+$("mark-btn").addEventListener("click",markDone);
+$("close-btn").addEventListener("click",closeRitual);
+$("shuffle").addEventListener("click",()=>{clearState();startCard(true);});
+$("again-btn").addEventListener("click",()=>{$("win-overlay").classList.add("hidden");clearState();startCard(true);});
+window.addEventListener("resize",raiseSun);
+makeStars(46);
+startCard(false);  // restores saved progress if present
+</script>
+</body>
+</html>
